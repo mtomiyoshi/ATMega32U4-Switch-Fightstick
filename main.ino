@@ -15,9 +15,6 @@ byte buttonStatus[15];
 /*
   0x4000,
   0x8000,
-#define CAPTURE_MASK_ON 0x2000
-#define R3_MASK_ON 0x800
-#define L3_MASK_ON 0x400
  */
 #define DPAD_UP_MASK_ON 0x00
 #define DPAD_UPRIGHT_MASK_ON 0x01
@@ -39,6 +36,9 @@ byte buttonStatus[15];
 #define START_MASK_ON 0x200
 #define SELECT_MASK_ON 0x100
 #define HOME_MASK_ON 0x1000
+#define CAPTURE_MASK_ON 0x2000
+#define R3_MASK_ON 0x800
+#define L3_MASK_ON 0x400
 
 #define BUTTONUP 0
 #define BUTTONDOWN 1
@@ -80,7 +80,7 @@ typedef enum {
 State_t state = DIGITAL;
 
 void checkModeChange(){
-   if (buttonStatus[BUTTONSTART] && buttonStatus[BUTTONSELECT]){
+   if (buttonStatus[BUTTONSELECT] && buttonStatus[BUTTONLT]){
     if(buttonStartBefore == 0 && buttonSelectBefore ==0){
         switch(state)
         {
@@ -262,16 +262,34 @@ void processButtons(){
   }
 }
 void buttonProcessing(){
+  if (buttonStatus[BUTTONSELECT] && buttonStatus[BUTTONLB] && buttonStatus[BUTTONLT]){
+     uint16_t *const bootKeyPtr = (uint16_t *)0x0800;
+    // Value used by Caterina bootloader use to determine whether to run the
+    // sketch or the bootloader programmer.
+    uint16_t bootKey = 0x7777;
+    *bootKeyPtr = bootKey;
+    // setup watchdog timeout
+    wdt_enable(WDTO_60MS);
+    while(1) {} // wait for watchdog timer to trigger
+  }
+  
   if (buttonStatus[BUTTONA]) {ReportData.Button |= A_MASK_ON;}
   if (buttonStatus[BUTTONB]) {ReportData.Button |= B_MASK_ON;}
-  if (buttonStatus[BUTTONX]) {ReportData.Button |= X_MASK_ON;}
-  if (buttonStatus[BUTTONY]) {ReportData.Button |= Y_MASK_ON;}
-  if (buttonStatus[BUTTONLB]) {ReportData.Button |= LB_MASK_ON;}
-  if (buttonStatus[BUTTONRB]) {ReportData.Button |= RB_MASK_ON;}
   if (buttonStatus[BUTTONLT]) {ReportData.Button |= ZL_MASK_ON;}
   if (buttonStatus[BUTTONRT]) {ReportData.Button |= ZR_MASK_ON;}
-  if (buttonStatus[BUTTONSTART]){ReportData.Button |= START_MASK_ON;}
-  if (buttonStatus[BUTTONSELECT]){ReportData.Button |= SELECT_MASK_ON;}
+  if (buttonStatus[BUTTONSELECT]) { 
+    if (buttonStatus[BUTTONX]){ReportData.Button |= HOME_MASK_ON;}
+    if (buttonStatus[BUTTONY]){ReportData.Button |= CAPTURE_MASK_ON;}
+    if (buttonStatus[BUTTONLB]){ReportData.Button |= L3_MASK_ON;}  
+    if (buttonStatus[BUTTONRB]){ReportData.Button |= R3_MASK_ON;}
+    if (buttonStatus[BUTTONSTART]){ReportData.Button |= SELECT_MASK_ON;}    
+  } else {    
+    if (buttonStatus[BUTTONX]) {ReportData.Button |= X_MASK_ON;}
+    if (buttonStatus[BUTTONY]) {ReportData.Button |= Y_MASK_ON;}
+    if (buttonStatus[BUTTONLB]) {ReportData.Button |= LB_MASK_ON;}
+    if (buttonStatus[BUTTONRB]) {ReportData.Button |= RB_MASK_ON;}
+    if (buttonStatus[BUTTONSTART]){ReportData.Button |= START_MASK_ON;}
+  }
   if (buttonStatus[BUTTONHOME]){ReportData.Button |= HOME_MASK_ON;}
 }
 void buttonProcessingSmash(){
